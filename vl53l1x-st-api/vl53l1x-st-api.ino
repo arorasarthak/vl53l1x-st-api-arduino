@@ -175,3 +175,34 @@ void printRangingData()
     Serial.println(RangingData.AmbientRateRtnMegaCps/65336.0);
   }
 }
+
+void FastRangingTest()
+{
+ uint8_t firstTimeInterrupt = 1;
+ static VL53L1_RangingMeasurementData_t RangingData;
+ status = VL53L1_WaitDeviceBooted(Dev);
+ status = VL53L1_DataInit(Dev);
+ status = VL53L1_StaticInit(Dev);
+ /* (1) Three important functions to use to configure the sensor in fast mode */
+ status = VL53L1_SetPresetMode(Dev, VL53L1_PRESETMODE_LITE_RANGING);
+ status = VL53L1_SetDistanceMode(Dev, VL53L1_DISTANCEMODE_SHORT);
+ status = VL53L1_SetMeasurementTimingBudgetMicroSeconds(Dev, 10000);
+ status = VL53L1_StartMeasurement(Dev);
+ do {
+ status = VL53L1_WaitMeasurementDataReady(Dev)
+ if(firstTimeInterrupt == 0){
+ status = VL53L1_GetRangingMeasurementData(Dev,&RangingData);
+if(status==0){
+Serial.print("%d,%d,%.2f,%.2f\n", RangingData.RangeStatus,RangingData.RangeMilliMeter,
+        RangingData.SignalRateRtnMegaCps/65536.0,RangingData.AmbientRateRtnMegaCps/65336.0);
+}
+ status = VL53L1_ClearInterruptAndStartMeasurement(Dev);
+ }
+ /* (2) If first interrupt, do not get data, clear interrupt and start */
+ else{
+ status = VL53L1_ClearInterruptAndStartMeasurement(Dev);
+ firstTimeInterrupt = 0;
+ }
+ }
+ while (1);
+}
